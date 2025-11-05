@@ -1,0 +1,70 @@
+{
+  "mcpServers": {
+    "architecture-guidance": {
+      "description": "Provides architecture guidance for React App Store project",
+      "commands": {
+        "explain-architecture": {
+          "description": "Explains the Clear Architecture pattern used in this project",
+          "usage": "Use when user asks about architecture or design patterns"
+        },
+        "suggest-pattern": {
+          "description": "Suggests appropriate patterns for implementing features",
+          "usage": "Use when user needs guidance on how to implement something"
+        },
+        "review-code-structure": {
+          "description": "Reviews code structure against architecture guidelines",
+          "usage": "Use when reviewing code or suggesting improvements"
+        }
+      }
+    },
+    "jet-framework": {
+      "description": "Provides guidance on Jet framework usage",
+      "commands": {
+        "create-intent": {
+          "description": "Helps create new intents following Jet framework patterns",
+          "usage": "When user wants to create a new intent"
+        },
+        "create-action": {
+          "description": "Helps create new actions following Jet framework patterns",
+          "usage": "When user wants to create a new action"
+        },
+        "explain-routing": {
+          "description": "Explains how routing works in Jet framework",
+          "usage": "When user asks about routing"
+        }
+      }
+    },
+    "component-guidance": {
+      "description": "Provides React component development guidance",
+      "commands": {
+        "create-component": {
+          "description": "Helps create React components following project conventions",
+          "usage": "When user wants to create a new component"
+        },
+        "suggest-hooks": {
+          "description": "Suggests appropriate React hooks for use cases",
+          "usage": "When user needs hook recommendations"
+        },
+        "review-component": {
+          "description": "Reviews component code against project guidelines",
+          "usage": "When reviewing component code"
+        }
+      }
+    }
+  },
+  "rules": {
+    "alwaysUseClearArchitecture": true,
+    "preferTypeScript": true,
+    "followJetFrameworkPatterns": true,
+    "useSharedModules": true,
+    "documentPublicAPIs": true
+  },
+  "context": {
+    "projectType": "React + TypeScript",
+    "architecture": "Clear Architecture",
+    "framework": "Jet Framework (custom)",
+    "stateManagement": "Jet + React Context",
+    "routing": "Jet Framework (intent-based)"
+  }
+}
+

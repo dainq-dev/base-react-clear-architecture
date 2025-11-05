@@ -1,0 +1,39 @@
+/* App-specific styles using Tailwind */
+.app-container {
+  @apply min-h-screen grid grid-cols-1 gap-0;
+  grid-template-areas:
+    'structure-header'
+    'structure-main-section';
+  grid-template-rows: 44px auto;
+}
+
+@media (min-width: 768px) {
+  .app-container {
+    @apply grid-cols-[260px_minmax(0,1fr)];
+    grid-template-rows: auto;
+  }
+}
+
+.navigation-container {
+  @apply sticky top-0 h-screen;
+}
+
+.page-container {
+  @apply flex-grow;
+}
+
+.app-loading {
+  @apply flex items-center justify-center min-h-screen;
+}
+
+.loading-spinner {
+  @apply inline-block w-10 h-10 border-4 border-gray-200 border-t-blue-500 rounded-full;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
