@@ -1,40 +1,28 @@
 {
-  "name": "react-app-store",
+  "name": "react-app-store-monorepo",
   "version": "1.0.0",
-  "description": "React App Store - Clear Architecture based on Apple App Store",
+  "description": "React App Store - Monorepo with Gateway and Backend",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "type-check": "tsc --noEmit"
-  },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "_dependencies_planned": {
-    "note": "These dependencies are planned for future use but not currently installed",
-    "react-router-dom": "^6.20.0",
-    "zustand": "^4.4.7",
-    "zod": "^3.22.4"
+    "dev": "pnpm --filter frontend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:gateway": "pnpm --filter gateway start:dev",
+    "dev:backend": "pnpm --filter backend start:dev",
+    "dev:all": "pnpm --parallel --filter './packages/*' dev",
+    "build": "pnpm --filter './packages/*' build",
+    "build:frontend": "pnpm --filter frontend build",
+    "build:gateway": "pnpm --filter gateway build",
+    "build:backend": "pnpm --filter backend build",
+    "lint": "pnpm --filter './packages/*' lint",
+    "type-check": "pnpm --filter './packages/*' type-check",
+    "clean": "pnpm --filter './packages/*' clean && rm -rf node_modules"
   },
   "devDependencies": {
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
-    "@typescript-eslint/eslint-plugin": "^6.14.0",
-    "@typescript-eslint/parser": "^6.14.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "autoprefixer": "^10.4.16",
-    "eslint": "^8.55.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.5",
-    "postcss": "^8.4.32",
-    "tailwindcss": "^3.4.0",
-    "typescript": "^5.2.2",
-    "vite": "^5.0.8"
+    "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
   }
 }
-

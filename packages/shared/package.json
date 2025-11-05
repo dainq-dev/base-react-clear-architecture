@@ -1,0 +1,16 @@
+{
+  "name": "@react-app-store/shared",
+  "version": "1.0.0",
+  "description": "Shared types and utilities for React App Store",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}
+

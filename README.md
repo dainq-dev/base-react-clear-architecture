@@ -1,17 +1,79 @@
-# Beginner Guide - React App Store
+# React App Store - Monorepo
 
-Hướng dẫn chi tiết để hiểu và sử dụng dự án React App Store, được tái tạo từ Apple App Store web (Svelte) với React và áp dụng các tư duy kiến trúc tương tự.
+Monorepo structure cho React App Store với Gateway và Backend services, được tái tạo từ Apple App Store web (Svelte) với React và áp dụng các tư duy kiến trúc tương tự.
 
 ## 📚 Mục Lục
 
-1. [Giới Thiệu](#giới-thiệu)
-2. [Kiến Trúc Tổng Quan](#kiến-trúc-tổng-quan)
-3. [Các Khái Niệm Cốt Lõi](#các-khái-niệm-cốt-lõi)
-4. [Luồng Hoạt Động](#luồng-hoạt-động)
-5. [Hướng Dẫn Sử Dụng](#hướng-dẫn-sử-dụng)
-6. [Ví Dụ Thực Tế](#ví-dụ-thực-tế)
-7. [Best Practices](#best-practices)
-8. [Troubleshooting](#troubleshooting)
+- [Quick Start](#quick-start) ⚡
+- [Giới Thiệu](#giới-thiệu)
+- [Cấu Trúc Monorepo](#cấu-trúc-monorepo)
+- [Yêu Cầu Hệ Thống](#yêu-cầu-hệ-thống)
+- [Cài Đặt & Setup](#cài-đặt--setup)
+- [Chạy Dự Án](#chạy-dự-án)
+- [Cấu Trúc Packages](#cấu-trúc-packages)
+- [Kiến Trúc](#kiến-trúc)
+- [Intent-Based API](#intent-based-api)
+- [Workflow Development](#workflow-development)
+- [Scripts Reference](#scripts-reference)
+- [Troubleshooting](#troubleshooting)
+- [Tài Liệu Tham Khảo](#tài-liệu-tham-khảo)
+
+---
+
+## Quick Start ⚡
+
+### 1. Install Dependencies
+
+```bash
+# Install pnpm nếu chưa có
+npm install -g pnpm
+
+# Install dependencies cho tất cả packages
+pnpm install
+```
+
+### 2. Build Shared Package
+
+```bash
+pnpm --filter shared build
+```
+
+### 3. Setup Environment (Optional)
+
+```bash
+# Gateway
+cp packages/gateway/.env.example packages/gateway/.env
+
+# Backend
+cp packages/backend/.env.example packages/backend/.env
+```
+
+### 4. Start All Services
+
+```bash
+pnpm dev:all
+```
+
+Hoặc start từng service riêng:
+
+```bash
+# Terminal 1
+pnpm dev:gateway
+
+# Terminal 2
+pnpm dev:backend
+
+# Terminal 3
+pnpm dev:frontend
+```
+
+### 5. Access Services
+
+- **Frontend**: http://localhost:3000
+- **Gateway**: http://localhost:3001/api
+- **Backend**: http://localhost:3002/api
+
+**Xong! Bạn đã sẵn sàng để phát triển.** 🎉
 
 ---
 
@@ -21,990 +83,936 @@ Hướng dẫn chi tiết để hiểu và sử dụng dự án React App Store,
 
 React App Store là một ứng dụng web được xây dựng dựa trên kiến trúc của Apple App Store web. Thay vì sử dụng Svelte như bản gốc, dự án này được tái tạo lại với React và TypeScript, giữ nguyên các nguyên tắc thiết kế và tư duy kiến trúc.
 
-### Tại sao kiến trúc này?
+### Đặc Điểm
 
-1. **Clear Architecture**: Tách biệt rõ ràng giữa business logic và UI
-2. **Testability**: Logic có thể test độc lập không cần UI
-3. **Maintainability**: Dễ bảo trì và mở rộng
-4. **Intent-Based**: Mọi request đều thông qua Intent, dễ trace và debug
+- ✅ **Clear Architecture** - Tách biệt rõ ràng giữa business logic và UI
+- ✅ **Intent-Based Routing** - Single endpoint `/api/intents` cho tất cả requests
+- ✅ **Monorepo Structure** - Tổ chức code với pnpm workspaces
+- ✅ **Type Safety** - TypeScript end-to-end với shared types
+- ✅ **Jet Framework** - Custom framework cho routing và state management
 
 ---
 
-## Kiến Trúc Tổng Quan
+## Cấu Trúc Monorepo
+
+```
+react-app-store/
+├── packages/
+│   ├── frontend/          # React application với Jet framework
+│   │   ├── src/
+│   │   │   ├── jet/       # Jet framework (Intent-based routing)
+│   │   │   ├── components/
+│   │   │   ├── context/
+│   │   │   └── ...
+│   │   ├── package.json
+│   │   └── vite.config.ts
+│   │
+│   ├── gateway/           # API Gateway (NestJS)
+│   │   ├── src/
+│   │   │   ├── intents/   # Intent controller & router
+│   │   │   ├── guards/    # Authentication guards
+│   │   │   └── interceptors/
+│   │   ├── package.json
+│   │   └── nest-cli.json
+│   │
+│   ├── backend/           # Backend services (NestJS)
+│   │   ├── src/
+│   │   │   ├── modules/   # Business logic modules
+│   │   │   └── ...
+│   │   ├── package.json
+│   │   └── nest-cli.json
+│   │
+│   └── shared/            # Shared types & utilities
+│       ├── src/
+│       │   ├── types/     # Intent types, Response types
+│       │   ├── logger/    # Logger implementation
+│       │   ├── localization/ # i18n support
+│       │   └── utils/      # Common utilities
+│       ├── package.json
+│       └── tsconfig.json
+│
+├── pnpm-workspace.yaml    # PNPM workspace configuration
+├── package.json           # Root package với scripts
+├── tsconfig.json          # Root TypeScript config
+└── README.md              # File này
+```
+
+---
+
+## Yêu Cầu Hệ Thống
+
+- **Node.js**: >= 18.0.0
+- **pnpm**: >= 8.0.0 (recommended) hoặc npm/yarn
+
+### Cài đặt pnpm
+
+```bash
+npm install -g pnpm
+```
+
+---
+
+## Cài Đặt & Setup
+
+### Bước 1: Clone Repository
+
+```bash
+git clone <repository-url>
+cd react-app-store
+```
+
+### Bước 2: Install Dependencies
+
+```bash
+# Install dependencies cho tất cả packages
+pnpm install
+```
+
+### Bước 3: Build Shared Package
+
+Shared package cần được build trước vì các packages khác phụ thuộc vào nó:
+
+```bash
+pnpm --filter shared build
+```
+
+### Bước 4: Setup Environment Variables
+
+#### Gateway Environment
+
+```bash
+cd packages/gateway
+cp .env.example .env
+```
+
+Edit `packages/gateway/.env`:
+
+```env
+PORT=3001
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+BACKEND_SERVICE_URL=http://localhost:3002
+```
+
+#### Backend Environment
+
+```bash
+cd packages/backend
+cp .env.example .env
+```
+
+Edit `packages/backend/.env`:
+
+```env
+PORT=3002
+NODE_ENV=development
+GATEWAY_URL=http://localhost:3001
+```
+
+### Bước 5: Verify Setup
+
+```bash
+# Type check tất cả packages
+pnpm type-check
+
+# Build shared package để verify
+pnpm --filter shared build
+```
+
+---
+
+## Chạy Dự Án
+
+### Option 1: Start Tất Cả Services (Recommended)
+
+```bash
+pnpm dev:all
+```
+
+Lệnh này sẽ start tất cả services trong parallel mode.
+
+### Option 2: Start Từng Service Riêng
+
+**Terminal 1 - Gateway:**
+```bash
+pnpm dev:gateway
+# hoặc
+pnpm --filter gateway start:dev
+```
+
+**Terminal 2 - Backend:**
+```bash
+pnpm dev:backend
+# hoặc
+pnpm --filter backend start:dev
+```
+
+**Terminal 3 - Frontend:**
+```bash
+pnpm dev:frontend
+# hoặc
+pnpm --filter frontend dev
+```
+
+### Services URLs
+
+Sau khi start, các services sẽ chạy tại:
+
+- **Frontend**: http://localhost:3000
+- **Gateway**: http://localhost:3001/api
+- **Backend**: http://localhost:3002/api
+
+### Verify Services
+
+```bash
+# Test Gateway
+curl http://localhost:3001/api/intents
+
+# Test Backend
+curl http://localhost:3002/api
+```
+
+---
+
+## Cấu Trúc Packages
+
+### 📱 Frontend (`@react-app-store/frontend`)
+
+React application với Jet framework cho Intent-based routing.
+
+**Tech Stack:**
+- React 18 + TypeScript
+- Vite (build tool)
+- Tailwind CSS (styling)
+- Jet Framework (custom routing)
+
+**Key Files:**
+- `src/jet/Jet.ts` - Core Jet framework
+- `src/jet/controllers/` - Intent controllers
+- `src/jet/intents/` - Intent definitions
+- `src/components/` - React components
+- `src/bootstrap.ts` - Application bootstrap
+
+**Scripts:**
+```bash
+pnpm --filter frontend dev          # Development server
+pnpm --filter frontend build       # Production build
+pnpm --filter frontend type-check  # Type checking
+```
+
+### 🚪 Gateway (`@react-app-store/gateway`)
+
+API Gateway - single endpoint `/api/intents` cho tất cả requests.
+
+**Tech Stack:**
+- NestJS (Node.js framework)
+- Intent-based routing
+- Authentication & Authorization
+- Request logging
+
+**Key Files:**
+- `src/intents/intents.controller.ts` - Main endpoint controller
+- `src/intents/intent.mapper.ts` - Map Intent → module + function
+- `src/intents/intent.router.ts` - Route to backend services
+- `src/guards/auth.guard.ts` - Authentication guard
+
+**Scripts:**
+```bash
+pnpm --filter gateway start:dev     # Development server
+pnpm --filter gateway build         # Production build
+pnpm --filter gateway start:prod    # Production server
+```
+
+**API Endpoint:**
+```
+POST /api/intents
+GET  /api/intents?$kind=...&...
+PUT  /api/intents
+PATCH /api/intents
+DELETE /api/intents
+```
+
+### 🔧 Backend (`@react-app-store/backend`)
+
+Backend services - xử lý business logic.
+
+**Tech Stack:**
+- NestJS (Node.js framework)
+- Module-based architecture
+- TypeScript
+
+**Key Files:**
+- `src/modules/` - Business logic modules (product, search, etc.)
+- `src/app.module.ts` - Main application module
+
+**Scripts:**
+```bash
+pnpm --filter backend start:dev     # Development server
+pnpm --filter backend build         # Production build
+pnpm --filter backend start:prod    # Production server
+```
+
+**Module Structure:**
+```
+src/modules/
+├── product/
+│   ├── product.controller.ts
+│   ├── product.service.ts
+│   └── product.module.ts
+└── search/
+    ├── search.controller.ts
+    ├── search.service.ts
+    └── search.module.ts
+```
+
+### 📦 Shared (`@react-app-store/shared`)
+
+Shared types và utilities được sử dụng bởi tất cả packages.
+
+**Contents:**
+- **Types**: Intent types, Response types
+- **Logger**: Console logger implementation
+- **Localization**: i18n support
+- **Utils**: URL utilities, Optional types
+
+**Usage:**
+```typescript
+import { Intent, Logger, I18N, ConsoleLoggerFactory } from '@react-app-store/shared';
+```
+
+**Scripts:**
+```bash
+pnpm --filter shared build          # Build package
+pnpm --filter shared type-check     # Type checking
+```
+
+---
+
+## Kiến Trúc
+
+### Architecture Overview
+
+```
+┌─────────────────────────────────────┐
+│  Frontend (React)                    │
+│  - Components, Hooks, Context        │
+│  - Jet Framework (Intent dispatch)   │
+└─────────────────────────────────────┘
+           ↓ HTTP Request
+           ↓ POST /api/intents
+┌─────────────────────────────────────┐
+│  Gateway (NestJS)                    │
+│  - Single endpoint /api/intents     │
+│  - Authentication & Authorization    │
+│  - Intent mapping & routing          │
+└─────────────────────────────────────┘
+           ↓ HTTP Request
+           ↓ POST /api/{module}/{function}
+┌─────────────────────────────────────┐
+│  Backend (NestJS)                    │
+│  - Business logic modules           │
+│  - Database access                   │
+│  - External API calls                │
+└─────────────────────────────────────┘
+```
 
 ### 4 Layers của Clear Architecture
 
-```
-┌─────────────────────────────────────┐
-│  Presentation Layer (React)         │
-│  - Components, Hooks, Context       │
-│  - UI rendering, user interactions  │
-└─────────────────────────────────────┘
-           ↓ (dispatch intents)
-┌─────────────────────────────────────┐
-│  Application Layer (Jet Framework)  │
-│  - Intents, Actions, Controllers    │
-│  - Routing, state coordination      │
-└─────────────────────────────────────┘
-           ↓ (business logic)
-┌─────────────────────────────────────┐
-│  Domain Layer                       │
-│  - Models, Business Rules           │
-│  - Page types, data structures      │
-└─────────────────────────────────────┘
-           ↓ (data access)
-┌─────────────────────────────────────┐
-│  Infrastructure Layer               │
-│  - API Clients, Storage             │
-│  - External services                │
-└─────────────────────────────────────┘
-```
+1. **Presentation Layer** (Frontend)
+   - React components
+   - User interactions
+   - UI rendering
 
-### Quy Tắc Dependency
+2. **Application Layer** (Gateway)
+   - Intent handling
+   - Request routing
+   - State coordination
 
-- **Presentation** → **Application** → **Domain** ← **Infrastructure**
-- Layers chỉ phụ thuộc vào layers bên trong (vào trong)
-- Business logic không phụ thuộc vào framework (React)
+3. **Domain Layer** (Backend)
+   - Business logic
+   - Models & entities
+   - Business rules
+
+4. **Infrastructure Layer** (Backend)
+   - Database access
+   - External services
+   - API clients
+
+### Jet Framework
+
+Jet framework là core của frontend, xử lý Intent-based routing:
+
+**Core Concepts:**
+- **Intent**: Request để lấy data hoặc thực hiện operation
+- **Action**: User interaction (click, submit, etc.)
+- **Controller**: Xử lý Intent và trả về data
+- **Page**: Data model đại diện cho một trang
+
+**Flow:**
+```
+User Action → Action → Intent → Controller → API Gateway → Backend → Response
+```
 
 ---
 
-## Các Khái Niệm Cốt Lõi
+## Intent-Based API
 
-### 1. Intent (Ý Định)
+### Khái Niệm
 
-**Intent là gì?**
-Intent đại diện cho một **request** (yêu cầu) để lấy dữ liệu hoặc thực hiện một hành động. Intent KHÔNG phải là action của user, mà là **message** để request data hoặc operation.
+Tất cả requests đều thông qua single endpoint `/api/intents` với Intent pattern.
 
-**Cấu trúc:**
+### Request Format
+
 ```typescript
-interface Intent {
-  $kind: string;        // Loại intent (ví dụ: 'RouteUrlIntent', 'GetProductIntent')
-  [key: string]: unknown; // Các tham số khác
-}
-```
-
-**Ví dụ:**
-```typescript
-// Intent để route một URL
-const routeIntent = {
-  $kind: 'RouteUrlIntent',
-  url: '/app/123'
-};
-
-// Intent để lấy thông tin product
-const productIntent = {
+// Frontend dispatch Intent
+const response = await apiClient.dispatch({
   $kind: 'GetProductIntent',
-  productId: '123'
-};
-```
-
-**Khi nào dùng Intent?**
-- ✅ Khi cần fetch data từ server
-- ✅ Khi cần navigate (route URL)
-- ✅ Khi cần thực hiện một operation (không phải user interaction trực tiếp)
-
-### 2. Action (Hành Động)
-
-**Action là gì?**
-Action đại diện cho **user interaction** (tương tác của người dùng) như click, navigate, submit form, etc.
-
-**Cấu trúc:**
-```typescript
-interface Action {
-  $kind: string;        // Loại action (ví dụ: 'ClickAction', 'NavigateAction')
-  [key: string]: unknown; // Các tham số khác
-}
-```
-
-**Ví dụ:**
-```typescript
-// User click vào một app
-const clickAction = {
-  $kind: 'ClickAction',
-  target: 'app-card',
-  appId: '123'
-};
-
-// User navigate
-const navigateAction = {
-  $kind: 'NavigateAction',
-  destination: '/app/123'
-};
-```
-
-**Khi nào dùng Action?**
-- ✅ Khi user click button/link
-- ✅ Khi user submit form
-- ✅ Khi user thực hiện bất kỳ interaction nào
-
-**Sự khác biệt Intent vs Action:**
-- **Intent**: "Tôi muốn lấy dữ liệu X" (request data)
-- **Action**: "User đã click vào Y" (user interaction)
-
-### 3. Controller (Bộ Điều Khiển)
-
-**Controller là gì?**
-Controller là nơi xử lý Intent. Mỗi Intent type sẽ có một Controller tương ứng để xử lý logic và trả về data.
-
-**Cấu trúc:**
-```typescript
-class MyController {
-  async handle(intent: Intent): Promise<SomeData> {
-    // Xử lý intent
-    // Fetch data, tính toán, etc.
-    return data;
-  }
-}
-```
-
-**Ví dụ:**
-```typescript
-class RouteUrlController {
-  async handle(intent: Intent): Promise<RouterResponse | null> {
-    if (!isRouteUrlIntent(intent)) {
-      return null;
-    }
-    
-    // Parse URL và trả về routing response
-    const url = new URL(intent.url);
-    // ... routing logic
-    
-    return {
-      intent: { $kind: 'ProductPageIntent', appId: '123' },
-      action: { $kind: 'FlowAction', ... },
-      storefront: 'vn',
-      language: 'vi-VN'
-    };
-  }
-}
-```
-
-**Luồng xử lý:**
-1. Component dispatch Intent
-2. Jet framework tìm Controller phù hợp
-3. Controller xử lý và trả về data
-4. Component nhận data và render
-
-### 4. Page (Trang)
-
-**Page là gì?**
-Page là data model đại diện cho một trang trong ứng dụng. Mỗi page có type và data riêng.
-
-**Cấu trúc:**
-```typescript
-interface Page {
-  canonicalURL?: string;    // URL của trang
-  pageType?: string;        // Loại trang (product, home, search, etc.)
-  [key: string]: unknown;    // Các field khác tùy loại page
-}
-```
-
-**Ví dụ:**
-```typescript
-// Product page
-const productPage: Page = {
-  canonicalURL: '/app/123',
-  pageType: 'product',
-  product: {
-    id: '123',
-    name: 'My App',
-    // ...
-  }
-};
-
-// Home page
-const homePage: Page = {
-  canonicalURL: '/',
-  pageType: 'home',
-  shelves: [...]
-};
-```
-
-### 5. Jet Framework
-
-**Jet là gì?**
-Jet là framework core quản lý routing và state coordination. Nó đóng vai trò trung gian giữa UI (React) và business logic.
-
-**Các method chính:**
-```typescript
-class Jet {
-  // Dispatch một intent để lấy data
-  async dispatch(intent: Intent): Promise<unknown>
-  
-  // Perform một action (user interaction)
-  async perform(action: Action): Promise<ActionOutcome>
-  
-  // Route URL thành intent và trả về RouterResponse
-  async routeUrl(url: string): Promise<RouterResponse | null>
-  
-  // Đăng ký intent handler
-  onIntent(kind: string, handler: Function): void
-  
-  // Đăng ký action handler
-  onAction(kind: string, handler: Function): void
-}
-```
-
----
-
-## Luồng Hoạt Động
-
-### 1. Application Bootstrap (Khởi Tạo Ứng Dụng)
-
-**Khi app khởi động:**
-
-```
-1. main.tsx renders App component
-   ↓
-2. App.tsx calls useBootstrap()
-   ↓
-3. useBootstrap() calls bootstrap()
-   ↓
-4. bootstrap() function:
-   - Tạo Jet instance
-   - Đăng ký các Controllers (bootstrapJet)
-   - Route initial URL
-   - Tạo AppContext với dependencies
-   ↓
-5. AppContext được provide cho toàn bộ app
-   ↓
-6. PageResolver render page dựa trên routing result
-```
-
-**Code flow:**
-```typescript
-// src/App.tsx
-function App() {
-  const { bootstrapResult, isInitialized, error } = useBootstrap();
-  // ...
-  return (
-    <AppProvider context={bootstrapResult.context}>
-      <PageResolver />
-    </AppProvider>
-  );
-}
-
-// src/jet/hooks/useJet.ts
-export function useBootstrap() {
-  useEffect(() => {
-    const result = await bootstrap({
-      initialUrl: window.location.href,
-      fetch: window.fetch.bind(window),
-    });
-    // ...
-  }, []);
-}
-```
-
-### 2. Routing Flow (Luồng Điều Hướng)
-
-**Khi user navigate hoặc app load:**
-
-```
-1. URL được parse (ví dụ: /app/123)
-   ↓
-2. Jet.routeUrl(url) được gọi
-   ↓
-3. RouteUrlIntent được tạo và dispatch
-   ↓
-4. RouteUrlController.handle() được gọi
-   ↓
-5. Controller parse URL và trả về RouterResponse:
-   {
-     intent: ProductPageIntent,
-     action: FlowAction,
-     storefront: 'vn',
-     language: 'vi-VN'
-   }
-   ↓
-6. RouterResponse được trả về cho PageResolver
-   ↓
-7. PageResolver dispatch ProductPageIntent để lấy page data
-   ↓
-8. Page component render với data
-```
-
-**Code example:**
-```typescript
-// User navigates to /app/123
-const routing = await jet.routeUrl('/app/123');
-
-// Routing returns:
-{
-  intent: { $kind: 'ProductPageIntent', appId: '123' },
-  action: { $kind: 'FlowAction', destination: {...} },
+  productId: '123',
   storefront: 'vn',
   language: 'vi-VN'
-}
-
-// Then dispatch ProductPageIntent to get page data
-const pageData = await jet.dispatch({
-  $kind: 'ProductPageIntent',
-  appId: '123'
 });
 ```
 
-### 3. Data Fetching Flow (Luồng Lấy Dữ Liệu)
+### Gateway Processing
 
-**Khi component cần data:**
+Gateway sẽ:
+1. Nhận Intent từ frontend
+2. Map `$kind` → `module` + `function` (ví dụ: `GetProductIntent` → `product` + `getProduct`)
+3. Route đến backend service: `POST /api/product/getProduct`
+4. Wrap response và trả về frontend
 
-```
-1. Component gọi jet.dispatch(intent)
-   ↓
-2. Jet tìm Controller phù hợp với intent.$kind
-   ↓
-3. Controller.handle(intent) được gọi
-   ↓
-4. Controller có thể:
-   - Fetch từ API
-   - Tính toán
-   - Lấy từ cache
-   - Combine nhiều sources
-   ↓
-5. Controller trả về data
-   ↓
-6. Component nhận data và update state
-   ↓
-7. Component re-render với data mới
-```
+### Response Format
 
-**Code example:**
 ```typescript
-// In a component
-const { context } = useAppContext();
-const jet = context.jet;
-
-useEffect(() => {
-  async function loadData() {
-    try {
-      const data = await jet.dispatch({
-        $kind: 'GetProductIntent',
-        productId: '123'
-      });
-      setProduct(data);
-    } catch (error) {
-      setError(error);
-    }
+// Success Response
+{
+  success: true,
+  data: { ... },
+  meta: {
+    module: 'product',
+    function: 'getProduct',
+    intent: 'GetProductIntent',
+    timestamp: '2024-01-01T00:00:00.000Z'
   }
-  loadData();
-}, []);
+}
+
+// Error Response
+{
+  success: false,
+  error: {
+    code: 'PRODUCT_NOT_FOUND',
+    message: 'Product not found',
+    module: 'product',
+    function: 'getProduct'
+  }
+}
 ```
 
-### 4. User Interaction Flow (Luồng Tương Tác Người Dùng)
+### HTTP Methods
 
-**Khi user click/interact:**
+- **GET**: Cho read-only intents (query params)
+- **POST**: Cho mutations và data fetching
+- **PUT/PATCH/DELETE**: Cho specific operations
 
-```
-1. User click button/link
-   ↓
-2. Event handler tạo Action
-   ↓
-3. Component gọi jet.perform(action)
-   ↓
-4. Jet tìm Action handler phù hợp
-   ↓
-5. Action handler có thể:
-   - Dispatch Intent để lấy data mới
-   - Update state
-   - Navigate (tạo RouteUrlIntent)
-   ↓
-6. Action handler trả về 'performed' hoặc 'unsupported'
-   ↓
-7. Component có thể update UI dựa trên kết quả
-```
+### Example: Complete Flow
 
-**Code example:**
 ```typescript
-// In a component
-const handleClick = async () => {
-  const outcome = await jet.perform({
-    $kind: 'ClickAction',
-    target: 'app-card',
-    appId: '123'
-  });
-  
-  if (outcome === 'performed') {
-    // Action was handled successfully
-    // Maybe navigate or update UI
-  }
-};
+// 1. Frontend - Dispatch Intent
+const apiClient = new ApiClient('/api');
+const response = await apiClient.dispatch({
+  $kind: 'GetProductIntent',
+  productId: '123'
+});
+
+// 2. Gateway - Map & Route
+// IntentMapper.mapIntentToRoute() → { module: 'product', function: 'getProduct' }
+// IntentRouter.dispatch() → POST http://localhost:3002/api/product/getProduct
+
+// 3. Backend - Process
+// ProductController.getProduct() → ProductService.getProduct()
+// → Return product data
+
+// 4. Gateway - Wrap Response
+// Return { success: true, data: {...}, meta: {...} }
+
+// 5. Frontend - Receive & Render
+// Component receives data và update UI
 ```
 
 ---
 
-## Hướng Dẫn Sử Dụng
+## Workflow Development
 
 ### 1. Tạo Intent Mới
 
-**Bước 1: Định nghĩa Intent type**
+**Bước 1: Định nghĩa Intent type trong shared package**
 
-Tạo file `src/jet/intents/GetProductIntent.ts`:
 ```typescript
-import type { Intent } from '../types';
-
+// packages/shared/src/types/intents.ts
 export interface GetProductIntent extends Intent {
   $kind: 'GetProductIntent';
   productId: string;
-}
-
-export function isGetProductIntent(intent: Intent): intent is GetProductIntent {
-  return intent.$kind === 'GetProductIntent';
-}
-
-export function makeGetProductIntent(productId: string): GetProductIntent {
-  return {
-    $kind: 'GetProductIntent',
-    productId,
-  };
+  storefront?: string;
+  language?: string;
 }
 ```
 
-**Bước 2: Tạo Controller**
+**Bước 2: Register trong Gateway mapper**
 
-Tạo file `src/jet/controllers/GetProductController.ts`:
 ```typescript
-import type { Intent } from '../types';
-import { isGetProductIntent } from '../intents/GetProductIntent';
+// packages/gateway/src/intents/intent.mapper.ts
+this.routing.set('GetProductIntent', {
+  module: 'product',
+  function: 'getProduct'
+});
+```
 
-export class GetProductController {
-  async handle(intent: Intent): Promise<Product | null> {
-    if (!isGetProductIntent(intent)) {
-      return null;
-    }
-    
-    // Fetch product data (from API, cache, etc.)
-    const product = await fetchProduct(intent.productId);
-    return product;
-  }
-}
+**Bước 3: Implement Backend handler**
 
-async function fetchProduct(id: string): Promise<Product> {
-  // Your API call here
-  const response = await fetch(`/api/products/${id}`);
-  return response.json();
+```typescript
+// packages/backend/src/modules/product/product.controller.ts
+@Post('getProduct')
+async getProduct(@Body() dto: GetProductDto) {
+  return this.productService.getProduct(dto);
 }
 ```
 
-**Bước 3: Đăng ký Controller**
+**Bước 4: Sử dụng trong Frontend**
 
-Trong `src/jet/bootstrap.ts`:
 ```typescript
-import { GetProductController } from './controllers/GetProductController';
-
-export function bootstrapJet(jet: Jet): void {
-  // ... existing controllers
-  
-  const getProductController = new GetProductController();
-  
-  jet.onIntent('GetProductIntent', async (intent) => {
-    return getProductController.handle(intent);
-  });
-}
+// packages/frontend/src/components/ProductComponent.tsx
+const response = await apiClient.dispatch({
+  $kind: 'GetProductIntent',
+  productId: '123'
+});
 ```
 
-**Bước 4: Sử dụng trong Component**
+### 2. Tạo Backend Module Mới
 
-```typescript
-import { useJet } from '../context/AppContext';
+**Bước 1: Tạo module structure**
 
-function ProductComponent({ productId }: { productId: string }) {
-  const jet = useJet();
-  const [product, setProduct] = useState<Product | null>(null);
-  
-  useEffect(() => {
-    async function loadProduct() {
-      const data = await jet.dispatch({
-        $kind: 'GetProductIntent',
-        productId,
-      });
-      setProduct(data as Product);
-    }
-    loadProduct();
-  }, [productId, jet]);
-  
-  if (!product) return <LoadingSpinner />;
-  
-  return <div>{product.name}</div>;
-}
+```bash
+packages/backend/src/modules/
+└── my-module/
+    ├── my-module.controller.ts
+    ├── my-module.service.ts
+    ├── my-module.module.ts
+    └── dto/
+        └── my-action.dto.ts
 ```
 
-### 2. Tạo Action Mới
+**Bước 2: Implement module**
 
-**Bước 1: Định nghĩa Action type**
-
-Tạo file `src/jet/actions/ClickAppAction.ts`:
 ```typescript
-import type { Action } from '../types';
-
-export interface ClickAppAction extends Action {
-  $kind: 'ClickAppAction';
-  appId: string;
-}
-
-export function makeClickAppAction(appId: string): ClickAppAction {
-  return {
-    $kind: 'ClickAppAction',
-    appId,
-  };
-}
+// my-module.module.ts
+@Module({
+  controllers: [MyModuleController],
+  providers: [MyModuleService],
+})
+export class MyModuleModule {}
 ```
 
-**Bước 2: Tạo Action Handler**
+**Bước 3: Register trong app.module.ts**
 
-Trong `src/jet/bootstrap.ts`:
 ```typescript
-export function bootstrapJet(jet: Jet): void {
-  // ... existing handlers
-  
-  jet.onAction('ClickAppAction', async (action) => {
-    const { appId } = action as ClickAppAction;
-    
-    // Navigate to product page
-    const routing = await jet.routeUrl(`/app/${appId}`);
-    
-    // Or dispatch intent to load data
-    // const product = await jet.dispatch({
-    //   $kind: 'GetProductIntent',
-    //   productId: appId
-    // });
-    
-    return 'performed';
-  });
-}
+// packages/backend/src/app.module.ts
+@Module({
+  imports: [
+    // ... existing modules
+    MyModuleModule,
+  ],
+})
 ```
 
-**Bước 3: Sử dụng trong Component**
+**Bước 4: Update Gateway mapper**
 
 ```typescript
-import { useJet } from '../context/AppContext';
-
-function AppCard({ appId }: { appId: string }) {
-  const jet = useJet();
-  
-  const handleClick = async () => {
-    await jet.perform({
-      $kind: 'ClickAppAction',
-      appId,
-    });
-  };
-  
-  return (
-    <div onClick={handleClick}>
-      {/* App card content */}
-    </div>
-  );
-}
+// packages/gateway/src/intents/intent.mapper.ts
+this.routing.set('MyIntent', {
+  module: 'my-module',
+  function: 'myFunction'
+});
 ```
 
-### 3. Tạo Page Type Mới
+### 3. Sử Dụng Shared Package
 
-**Bước 1: Định nghĩa Page type**
+**Import từ shared package:**
 
-Tạo file `src/types/pages.ts`:
 ```typescript
-import type { Page } from '../jet/types';
+// ✅ Correct
+import { Intent, Logger, I18N } from '@react-app-store/shared';
 
-export interface ProductPage extends Page {
-  pageType: 'product';
-  product: {
-    id: string;
-    name: string;
-    description: string;
-    // ...
-  };
-}
-
-export function isProductPage(page: Page): page is ProductPage {
-  return page.pageType === 'product';
-}
+// ❌ Wrong
+import { Intent } from '../shared/types/intents';
 ```
 
-**Bước 2: Tạo Page Component**
-
-Tạo file `src/components/pages/ProductPage.tsx`:
-```typescript
-import type { Page } from '../../jet/types';
-import { isProductPage } from '../../types/pages';
-
-interface ProductPageProps {
-  page: Page;
-}
-
-export default function ProductPage({ page }: ProductPageProps) {
-  if (!isProductPage(page)) {
-    return <ErrorPage error={new Error('Invalid page type')} />;
-  }
-  
-  return (
-    <div>
-      <h1>{page.product.name}</h1>
-      <p>{page.product.description}</p>
-      {/* ... */}
-    </div>
-  );
-}
-```
-
-**Bước 3: Update PageResolver**
-
-Trong `src/components/PageResolver.tsx`:
-```typescript
-import ProductPage from './pages/ProductPage';
-import DefaultPage from './pages/DefaultPage';
-
-export default function PageResolver() {
-  const { context } = useAppContext();
-  const jet = useJet();
-  const [page, setPage] = useState<Page | null>(null);
-  
-  useEffect(() => {
-    async function loadPage() {
-      // Dispatch intent to get page data
-      const pageData = await jet.dispatch({
-        $kind: 'GetProductPageIntent',
-        url: window.location.href,
-      });
-      setPage(pageData as Page);
-    }
-    loadPage();
-  }, [jet, context]);
-  
-  if (!page) return <LoadingSpinner />;
-  
-  // Route to appropriate page component
-  switch (page.pageType) {
-    case 'product':
-      return <ProductPage page={page} />;
-    default:
-      return <DefaultPage page={page} />;
-  }
-}
-```
-
-### 4. Sử Dụng Context (AppContext)
-
-**Access Context trong Component:**
+**Tạo Intent:**
 
 ```typescript
-import { useAppContext, useJet } from '../context/AppContext';
+import { makeGetProductIntent } from '@react-app-store/shared';
 
-function MyComponent() {
-  // Get full context
-  const { context } = useAppContext();
-  
-  // Access specific values
-  const { jet, logger, i18n, storefront, language } = context;
-  
-  // Or use convenience hook
-  const jet = useJet();
-  
-  // Use logger
-  logger.info('Component mounted');
-  
-  // Use i18n
-  const text = i18n.translate('welcome.message', { name: 'User' });
-  
-  // Use jet
-  const data = await jet.dispatch({ $kind: 'SomeIntent' });
-}
-```
-
-### 5. Error Handling
-
-**Error Boundary:**
-
-App đã có `ErrorBoundary` wrapper. Bất kỳ error nào trong React component tree sẽ được catch:
-
-```typescript
-// src/App.tsx
-<ErrorBoundary>
-  <AppProvider context={context}>
-    {/* Your components */}
-  </AppProvider>
-</ErrorBoundary>
-```
-
-**Error trong Intent:**
-
-```typescript
-// In Controller
-export class MyController {
-  async handle(intent: Intent): Promise<Data> {
-    try {
-      // Your logic
-      return data;
-    } catch (error) {
-      // Log error
-      logger.error('Error in MyController', error);
-      // Re-throw để component có thể handle
-      throw error;
-    }
-  }
-}
-
-// In Component
-useEffect(() => {
-  async function loadData() {
-    try {
-      const data = await jet.dispatch({ $kind: 'MyIntent' });
-      setData(data);
-    } catch (error) {
-      // Handle error
-      setError(error);
-    }
-  }
-  loadData();
-}, []);
+const intent = makeGetProductIntent('123', {
+  storefront: 'vn',
+  language: 'vi-VN'
+});
 ```
 
 ---
 
-## Ví Dụ Thực Tế
+## Scripts Reference
 
-### Ví Dụ 1: Tạo Search Feature
+### Root Level Scripts
 
-**1. Intent:**
+Tất cả scripts có thể chạy từ root directory:
+
+#### Development
+```bash
+pnpm dev                    # Start frontend only (default)
+pnpm dev:frontend          # Start frontend development server
+pnpm dev:gateway           # Start gateway development server
+pnpm dev:backend           # Start backend development server
+pnpm dev:all               # Start all services in parallel
+```
+
+#### Build
+```bash
+pnpm build                 # Build all packages
+pnpm build:frontend        # Build frontend only
+pnpm build:gateway         # Build gateway only
+pnpm build:backend         # Build backend only
+```
+
+#### Quality Checks
+```bash
+pnpm lint                  # Lint all packages
+pnpm type-check            # Type check all packages
+```
+
+#### Cleanup
+```bash
+pnpm clean                 # Remove all node_modules and dist folders
+```
+
+### Package-Specific Scripts
+
+Chạy script của một package cụ thể:
+
+```bash
+# Syntax: pnpm --filter <package-name> <script>
+
+# Frontend
+pnpm --filter frontend dev
+pnpm --filter frontend build
+pnpm --filter frontend type-check
+
+# Gateway
+pnpm --filter gateway start:dev
+pnpm --filter gateway build
+pnpm --filter gateway start:prod
+
+# Backend
+pnpm --filter backend start:dev
+pnpm --filter backend build
+pnpm --filter backend start:prod
+
+# Shared
+pnpm --filter shared build
+pnpm --filter shared type-check
+```
+
+---
+
+### Root Scripts
+
+```bash
+# Development
+pnpm dev                    # Start frontend only
+pnpm dev:frontend          # Start frontend
+pnpm dev:gateway           # Start gateway
+pnpm dev:backend           # Start backend
+pnpm dev:all               # Start all services in parallel
+
+# Build
+pnpm build                 # Build all packages
+pnpm build:frontend        # Build frontend only
+pnpm build:gateway         # Build gateway only
+pnpm build:backend         # Build backend only
+
+# Lint & Type Check
+pnpm lint                  # Lint all packages
+pnpm type-check            # Type check all packages
+
+# Clean
+pnpm clean                 # Clean all node_modules and dist folders
+```
+
+### Package Scripts
+
+```bash
+# Frontend
+pnpm --filter frontend dev
+pnpm --filter frontend build
+pnpm --filter frontend type-check
+
+# Gateway
+pnpm --filter gateway start:dev
+pnpm --filter gateway build
+
+# Backend
+pnpm --filter backend start:dev
+pnpm --filter backend build
+
+# Shared
+pnpm --filter shared build
+pnpm --filter shared type-check
+```
+
+---
+
+## Troubleshooting
+
+### Lỗi: "Cannot find module '@react-app-store/shared'"
+
+**Nguyên nhân:** Shared package chưa được build.
+
+**Giải pháp:**
+```bash
+# Build shared package
+pnpm --filter shared build
+
+# Hoặc reinstall dependencies
+pnpm install
+```
+
+### Lỗi: Port already in use
+
+**Giải pháp:**
+- Đổi port trong `.env` file của gateway/backend
+- Hoặc kill process đang sử dụng port:
+  ```bash
+  # Windows
+  netstat -ano | findstr :3001
+  taskkill /PID <PID> /F
+  
+  # Linux/Mac
+  lsof -ti:3001 | xargs kill
+  ```
+
+### Lỗi: Type errors
+
+**Giải pháp:**
+```bash
+# Type check tất cả packages
+pnpm type-check
+
+# Hoặc type check từng package
+pnpm --filter frontend type-check
+pnpm --filter gateway type-check
+pnpm --filter backend type-check
+pnpm --filter shared type-check
+```
+
+### Lỗi: Build shared package fails
+
+**Nguyên nhân:** TypeScript config issues.
+
+**Giải pháp:**
+```bash
+# Verify root tsconfig.json exists
+ls tsconfig.json
+
+# Rebuild shared package
+cd packages/shared
+pnpm build
+```
+
+### Lỗi: Gateway không connect được với Backend
+
+**Giải pháp:**
+1. Kiểm tra Backend đã chạy chưa
+2. Kiểm tra `BACKEND_SERVICE_URL` trong `packages/gateway/.env`
+3. Kiểm tra CORS settings trong Backend
+
+### Lỗi: Frontend không connect được với Gateway
+
+**Giải pháp:**
+1. Kiểm tra Gateway đã chạy chưa
+2. Kiểm tra proxy config trong `packages/frontend/vite.config.ts`
+3. Kiểm tra CORS settings trong Gateway
+
+---
+
+## Cấu Hình Chi Tiết
+
+### TypeScript Configuration
+
+**Root `tsconfig.json`:**
+- Project references cho tất cả packages
+- Base compiler options
+
+**Package `tsconfig.json`:**
+- Extends root config
+- Package-specific settings (lib, paths, etc.)
+
+### Path Aliases
+
+**Frontend:**
 ```typescript
-// src/jet/intents/SearchIntent.ts
-export interface SearchIntent extends Intent {
-  $kind: 'SearchIntent';
-  query: string;
+// vite.config.ts
+alias: {
+  '~': './src',
+  '@react-app-store/shared': '../shared/src'
+}
+
+// tsconfig.json
+paths: {
+  "~/*": ["./src/*"],
+  "@react-app-store/shared": ["../shared/src"]
 }
 ```
 
-**2. Controller:**
+**Usage:**
 ```typescript
-// src/jet/controllers/SearchController.ts
-export class SearchController {
-  async handle(intent: Intent): Promise<SearchResults> {
-    if (!isSearchIntent(intent)) return null;
-    
-    // Search logic
-    const results = await searchAPI(intent.query);
-    return results;
-  }
-}
+import { Intent } from '@react-app-store/shared';
+import Component from '~/components/Component';
 ```
 
-**3. Component:**
-```typescript
-function SearchPage() {
-  const jet = useJet();
-  const [results, setResults] = useState([]);
-  const [query, setQuery] = useState('');
-  
-  const handleSearch = async () => {
-    const results = await jet.dispatch({
-      $kind: 'SearchIntent',
-      query,
-    });
-    setResults(results as SearchResults);
-  };
-  
-  return (
-    <div>
-      <input value={query} onChange={(e) => setQuery(e.target.value)} />
-      <button onClick={handleSearch}>Search</button>
-      {/* Display results */}
-    </div>
-  );
-}
+### Environment Variables
+
+**Gateway (`packages/gateway/.env`):**
+```env
+PORT=3001
+NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+BACKEND_SERVICE_URL=http://localhost:3002
+
+# Authentication (optional)
+JWT_SECRET=your-secret-key
+AUTH_ENABLED=false
 ```
 
-### Ví Dụ 2: Navigation với Action
+**Backend (`packages/backend/.env`):**
+```env
+PORT=3002
+NODE_ENV=development
+GATEWAY_URL=http://localhost:3001
 
-```typescript
-function NavigationLink({ to, children }: { to: string; children: ReactNode }) {
-  const jet = useJet();
-  
-  const handleClick = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    
-    await jet.perform({
-      $kind: 'NavigateAction',
-      destination: to,
-    });
-    
-    // Or directly route
-    const routing = await jet.routeUrl(to);
-    // Handle routing result
-  };
-  
-  return <a href={to} onClick={handleClick}>{children}</a>;
-}
+# Database (when implementing)
+# DATABASE_URL=postgresql://user:password@localhost:5432/appstore
 ```
 
 ---
 
 ## Best Practices
 
-### 1. Intent vs Action
+### 1. Intent Design
 
-**✅ Dùng Intent khi:**
-- Cần fetch data
-- Cần thực hiện operation (không phải user interaction)
-- Cần route URL
+✅ **DO:**
+- Use descriptive `$kind` names (e.g., `GetProductIntent`, `SearchIntent`)
+- Include all necessary parameters
+- Use shared Intent types from `@react-app-store/shared`
 
-**✅ Dùng Action khi:**
-- User click/interact
-- User submit form
-- User navigate (từ UI)
+❌ **DON'T:**
+- Use generic names (e.g., `GetIntent`, `PostIntent`)
+- Mix concerns trong một Intent
+- Create Intent types locally (use shared package)
 
 ### 2. Controller Design
 
-**✅ DO:**
+✅ **DO:**
 - Mỗi Controller chỉ handle một loại Intent
-- Sử dụng type guards (`isXxxIntent`)
-- Throw error thay vì return null khi có lỗi
+- Use type guards (`isXxxIntent`)
+- Throw errors thay vì return null khi có lỗi
 - Log đầy đủ thông tin
 
-**❌ DON'T:**
+❌ **DON'T:**
 - Mix nhiều logic trong một Controller
-- Return null khi có lỗi (throw error thay vào đó)
+- Return null khi có lỗi (throw error)
 - Access UI trực tiếp từ Controller
 
-### 3. Component Design
+### 3. Module Organization
 
-**✅ DO:**
-- Sử dụng `useJet()` để access Jet
-- Sử dụng `useAppContext()` để access context
-- Handle errors properly
-- Use loading states
+✅ **DO:**
+- Organize by feature (product, search, user, etc.)
+- Keep modules independent
+- Use DTOs cho validation
+- Follow NestJS conventions
 
-**❌ DON'T:**
-- Tạo Jet instance mới trong component
-- Access dependencies trực tiếp (luôn qua context)
-- Ignore errors
+❌ **DON'T:**
+- Mix multiple features trong một module
+- Access database trực tiếp từ controller
+- Skip validation
 
-### 4. Type Safety
+### 4. Shared Package Usage
 
-**✅ DO:**
-- Sử dụng type guards
-- Define interfaces cho Intent/Action
-- Use TypeScript strict mode
+✅ **DO:**
+- Import từ `@react-app-store/shared`
+- Use shared types cho Intent definitions
+- Reuse logger, i18n, utils
 
-**❌ DON'T:**
-- Use `any` type
-- Skip type checking
-
-### 5. Error Handling
-
-**✅ DO:**
-- Wrap components với ErrorBoundary
-- Try-catch trong async functions
-- Log errors properly
-- Show user-friendly error messages
-
-**❌ DON'T:**
-- Ignore errors
-- Show technical errors to users
+❌ **DON'T:**
+- Duplicate code giữa packages
+- Create local implementations của shared utilities
+- Import bằng relative paths
 
 ---
 
-## Troubleshooting
+## Tài Liệu Tham Khảo
 
-### Lỗi: "No handler registered for intent: XxxIntent"
+### Architecture Documentation
 
-**Nguyên nhân:** Intent chưa được đăng ký trong `bootstrapJet()`.
+- **Frontend Architecture**: [packages/frontend/ARCHITECTURE.md](./packages/frontend/ARCHITECTURE.md) - Chi tiết về kiến trúc frontend và Jet framework
+- **Project Structure**: [packages/frontend/PROJECT_STRUCTURE.md](./packages/frontend/PROJECT_STRUCTURE.md) - Cấu trúc dự án chi tiết
 
-**Giải pháp:**
-1. Kiểm tra `src/jet/bootstrap.ts`
-2. Đảm bảo đã đăng ký handler:
-```typescript
-jet.onIntent('XxxIntent', async (intent) => {
-  return controller.handle(intent);
-});
-```
+### External Resources
 
-### Lỗi: "useAppContext must be used within AppProvider"
-
-**Nguyên nhân:** Component đang sử dụng `useAppContext()` bên ngoài `AppProvider`.
-
-**Giải pháp:**
-Đảm bảo component nằm trong `<AppProvider>`:
-```typescript
-<AppProvider context={context}>
-  <YourComponent /> {/* OK */}
-</AppProvider>
-
-<YourComponent /> {/* ERROR - outside AppProvider */}
-```
-
-### Lỗi: "Intent handler already registered"
-
-**Nguyên nhân:** Đăng ký handler nhiều lần cho cùng một Intent.
-
-**Giải pháp:**
-Kiểm tra `bootstrapJet()` - chỉ đăng ký một lần.
-
-### Component không re-render sau khi dispatch Intent
-
-**Nguyên nhân:** State không được update sau khi nhận data.
-
-**Giải pháp:**
-```typescript
-// ❌ WRONG
-const data = await jet.dispatch(intent);
-// Component không re-render
-
-// ✅ CORRECT
-const [data, setData] = useState(null);
-useEffect(() => {
-  async function load() {
-    const result = await jet.dispatch(intent);
-    setData(result); // Update state
-  }
-  load();
-}, []);
-```
-
-### Type errors với Intent/Action
-
-**Nguyên nhân:** Type không match.
-
-**Giải pháp:**
-Sử dụng type guards và factory functions:
-```typescript
-// ✅ GOOD
-const intent = makeGetProductIntent('123');
-if (isGetProductIntent(intent)) {
-  // Type-safe here
-}
-
-// ❌ BAD
-const intent: Intent = { $kind: 'GetProductIntent', productId: '123' };
-// No type safety
-```
+- [NestJS Documentation](https://docs.nestjs.com/)
+- [React Documentation](https://react.dev/)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [pnpm Workspaces](https://pnpm.io/workspaces)
 
 ---
 
-## Tóm Tắt
+## Roadmap
 
-### Quy Tắc Vàng
+### Completed ✅
+- [x] Monorepo structure setup
+- [x] Frontend với Jet framework
+- [x] Gateway với Intent-based API
+- [x] Backend base structure
+- [x] Shared package consolidation
+- [x] Type safety optimization
 
-1. **Intent cho data, Action cho interaction**
-2. **Luôn dispatch Intent qua Jet, không gọi API trực tiếp**
-3. **Controller xử lý logic, Component chỉ render**
-4. **Sử dụng Context để access dependencies**
-5. **Type safety everywhere**
+### In Progress 🚧
+- [ ] Backend modules implementation
+- [ ] Authentication & Authorization
+- [ ] Database integration
+- [ ] API client integration trong frontend controllers
 
-### Workflow Phát Triển
-
-1. **Define Intent/Action type** → Tạo file trong `intents/` hoặc `actions/`
-2. **Create Controller** → Tạo file trong `controllers/`
-3. **Register handler** → Thêm vào `bootstrapJet()`
-4. **Use in Component** → Dispatch Intent hoặc perform Action
-5. **Test** → Verify flow hoạt động đúng
-
-### Tài Liệu Tham Khảo
-
-- `ARCHITECTURE.md` - Chi tiết về kiến trúc
-- `PROJECT_STRUCTURE.md` - Cấu trúc dự án
-- Source code trong `src/jet/` - Implementation examples
+### Planned 📋
+- [ ] Testing setup (Jest, Vitest)
+- [ ] CI/CD pipeline
+- [ ] Documentation cho từng package
+- [ ] Performance optimization
+- [ ] Error handling improvements
 
 ---
 
-**Chúc bạn code vui vẻ! 🚀**
+## License
 
-Nếu có câu hỏi, hãy xem code examples trong `src/jet/` hoặc đọc `ARCHITECTURE.md` để hiểu sâu hơn.
+Private project - React App Store
+
+---
+
+## Contributing
+
+1. Follow the architecture principles
+2. Use Intent-based pattern cho data fetching
+3. Keep business logic separate from UI
+4. Write type-safe code
+5. Update documentation when adding features
+
+---
+
+**Happy Coding! 🚀**
 
